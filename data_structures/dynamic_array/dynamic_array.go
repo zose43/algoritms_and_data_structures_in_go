@@ -30,6 +30,23 @@ func (da *DynamicArray[T]) All() []T {
 	return arr
 }
 
+func (da *DynamicArray[T]) Get(n uint64) (T, error) {
+	if err := da.checkIndex(n); err != nil {
+		return *new(T), err
+	}
+
+	return da.arr[n], nil
+}
+
+func (da *DynamicArray[T]) Put(n uint64, element T) error {
+	if err := da.checkIndex(n); err != nil {
+		return err
+	}
+
+	da.arr[n] = element
+	return nil
+}
+
 func (da *DynamicArray[T]) Add(element T) *DynamicArray[T] {
 	if da.length >= da.capacity {
 		da.expand()
