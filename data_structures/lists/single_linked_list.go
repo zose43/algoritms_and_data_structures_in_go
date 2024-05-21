@@ -38,7 +38,7 @@ func (sl *SingleLinkedList[T]) PushTail(value T) error {
 	}
 
 	sl.tail.next = node
-	sl.tail = node
+	sl.tail = sl.tail.next
 	sl.size++
 	return nil
 }
@@ -60,7 +60,7 @@ func (sl *SingleLinkedList[T]) PushHead(value T) {
 	if sl.size < 1 {
 		sl.init(node)
 	} else {
-		sl.head.next = node
+		node.next = sl.head
 		sl.head = node
 		sl.size++
 	}
@@ -131,6 +131,7 @@ func (sl *SingleLinkedList[T]) Delete(index int) (T, error) {
 	if index == sl.size-1 {
 		value = node.next.value
 		node.next = nil
+		sl.tail = node
 		sl.size--
 		return value, nil
 	}
