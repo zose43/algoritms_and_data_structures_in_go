@@ -155,6 +155,18 @@ func (dl *DoubleLinkedList[T]) Remove(index int) (T, error) {
 	return value, nil
 }
 
+func (dl *DoubleLinkedList[T]) ForEach(f func(T)) {
+	for node := dl.head; node != nil; node = node.next {
+		f(node.value)
+	}
+}
+
+func (dl *DoubleLinkedList[T]) ReverseForEach(f func(T)) {
+	for node := dl.tail; node != nil; node = node.previous {
+		f(node.value)
+	}
+}
+
 func (dl *DoubleLinkedList[T]) checkRange(index int) error {
 	if index < 0 || index > dl.size-1 {
 		return ErrIndexOutOfRange
