@@ -32,6 +32,10 @@ func (t *HashTable[K, T]) Size() uint64 {
 	return t.size
 }
 
+func (t *HashTable[K, T]) IsEmpty() bool {
+	return t.size < 1
+}
+
 func (t *HashTable[K, T]) makeHash(key K) (uint64, error) {
 	h := fnv.New64()
 	if _, err := h.Write([]byte(fmt.Sprintf("%v", key))); err != nil {
@@ -95,6 +99,88 @@ func (t *HashTable[K, T]) Put(key K, val T) error {
 	t.resolvePutCollision(key, val, hashIndex)
 	t.size++
 	return nil
+}
+
+type HashTableFunc[T any] func(val T)
+
+func (t *HashTable[K, T]) Foreach(tFunc HashTableFunc[T]) {
+	if t.IsEmpty() {
+		return
+	}
+	for _, el := range t.table {
+		if el != nil {
+			for v := el; v != nil; v = v.next {
+				tFunc(v.value)
+			}
+		}
+	}
+}
+
+func (t *HashTable[K, T]) Clear() {
+	t.size = 0
+	for _, el := range t.table {
+		if el != nil {
+			el = nil
+		}
+	}
+	fmt.Println("clear")
+}
+
+func (t *HashTable[K, T]) Remove(key K) error {
+	hashIndex, err := t.makeHash(key)
+	if err != nil {
+		return err
+	}
+	if t.table[hashIndex] == nil {
+		return fmt.Errorf("%s %v", ErrElementIsEmptyByKey, key)
+	}
+	current := t.table[hashIndex]
+	if current.key == key {
+		t.table[hashIndex] = current.next
+		current = nil
+		t.size--
+		return nil
+	}
+	for el := current; el.next != nil; el = el.next {
+		rmEl := el.next
+		if rmEl.key == key {
+			el.next = rmEl.next
+			rmEl = nil
+			t.size--
+			return nil
+		}
+	}
+	return fmt.Errorf("%s %v", ErrElementIsEmptyByKey, key)
+}
+
+func (t *HashTable[K, T]) Keys() []K {
+	var keys []K
+	if t.IsEmpty() {
+		return keys
+	}
+	for _, v := range t.table {
+		if v != nil {
+			for el := v; el != nil; el = el.next {
+				keys = append(keys, el.key)
+			}
+		}
+	}
+	return keys
+}
+
+func (t *HashTable[K, T]) Values() []T {
+	var values []T
+	if t.IsEmpty() {
+		return values
+	}
+	for _, v := range t.table {
+		if v != nil {
+			for el := v; el != nil; el = el.next {
+				values = append(values, el.value)
+			}
+		}
+	}
+	return values
 }
 
 func (t *HashTable[K, T]) resolvePutCollision(key K, val T, index uint64) {
