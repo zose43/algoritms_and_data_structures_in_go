@@ -14,10 +14,29 @@ type node[K comparable, T any] struct {
 	next  *node[K, T]
 }
 
+type Hasher[K comparable] interface {
+	makeHash(key K) (uint64, error)
+}
+
+type hashMaker[K comparable] struct {
+	capacity uint64
+}
+
+func (h *hashMaker[K]) makeHash(key K) (uint64, error) {
+	hs := fnv.New64()
+	if _, err := hs.Write([]byte(fmt.Sprintf("%v", key))); err != nil {
+		return 0, err
+	}
+	hashVal := hs.Sum64()
+	hashVal = (h.capacity - 1) & (hashVal ^ (hashVal >> 16))
+	return hashVal, nil
+}
+
 type HashTable[K comparable, T any] struct {
 	size     uint64
 	capacity uint64
 	table    []*node[K, T]
+	hasher   Hasher[K]
 }
 
 func (t *HashTable[K, T]) newNode(key K, value T) *node[K, T] {
@@ -36,20 +55,10 @@ func (t *HashTable[K, T]) IsEmpty() bool {
 	return t.size < 1
 }
 
-func (t *HashTable[K, T]) makeHash(key K) (uint64, error) {
-	h := fnv.New64()
-	if _, err := h.Write([]byte(fmt.Sprintf("%v", key))); err != nil {
-		return 0, err
-	}
-	hashVal := h.Sum64()
-	hashVal = (t.capacity - 1) & (hashVal ^ (hashVal >> 16))
-	return hashVal, nil
-}
-
 var ErrElementIsEmptyByKey = errors.New("cannot find element by key")
 
 func (t *HashTable[K, T]) Get(key K) (T, error) {
-	hashIndex, err := t.makeHash(key)
+	hashIndex, err := t.hasher.makeHash(key)
 	if err != nil {
 		return *new(T), errors.Join(err, ErrElementIsEmptyByKey)
 	}
@@ -65,7 +74,7 @@ func (t *HashTable[K, T]) Get(key K) (T, error) {
 }
 
 func (t *HashTable[K, T]) Contains(key K) (bool, error) {
-	hashIndex, err := t.makeHash(key)
+	hashIndex, err := t.hasher.makeHash(key)
 	if err != nil {
 		return false, errors.Join(err, ErrElementIsEmptyByKey)
 	}
@@ -81,7 +90,7 @@ func (t *HashTable[K, T]) Contains(key K) (bool, error) {
 }
 
 func (t *HashTable[K, T]) Put(key K, val T) error {
-	hashIndex, err := t.makeHash(key)
+	hashIndex, err := t.hasher.makeHash(key)
 	if err != nil {
 		return err
 	}
@@ -127,7 +136,7 @@ func (t *HashTable[K, T]) Clear() {
 }
 
 func (t *HashTable[K, T]) Remove(key K) error {
-	hashIndex, err := t.makeHash(key)
+	hashIndex, err := t.hasher.makeHash(key)
 	if err != nil {
 		return err
 	}
@@ -197,10 +206,11 @@ func NewHashTable[K comparable, T any]() *HashTable[K, T] {
 	return &HashTable[K, T]{
 		capacity: defaultCapacity,
 		table:    t,
+		hasher:   &hashMaker[K]{capacity: defaultCapacity},
 	}
 }
 
-var ErrCapacityIsEmpty = errors.New("capacity cannot be 0")
+var ErrCapacityIsEmpty = errors.New("size cannot be 0")
 
 func NewHashTableWithCapacity[K comparable, T any](capacity uint64) (*HashTable[K, T], error) {
 	if capacity < 1 {
@@ -210,6 +220,7 @@ func NewHashTableWithCapacity[K comparable, T any](capacity uint64) (*HashTable[
 	ht := &HashTable[K, T]{
 		capacity: capacity,
 		table:    t,
+		hasher:   &hashMaker[K]{capacity: capacity},
 	}
 
 	return ht, nil
