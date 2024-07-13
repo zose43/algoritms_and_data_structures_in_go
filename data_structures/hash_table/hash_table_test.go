@@ -233,3 +233,308 @@ func iterateThrowCollision(key int, n *node[int, *people]) *people {
 	}
 	return new(people)
 }
+
+func TestHashTable_Contains(t *testing.T) {
+	type testCase[K comparable, T any] struct {
+		name    string
+		ht      *HashTable[K, T]
+		args    K
+		want    bool
+		wantErr assert.ErrorAssertionFunc
+		check   bool
+	}
+	tests := []testCase[int, *people]{
+		{
+			name:    "got error by hasher",
+			args:    1,
+			want:    false,
+			wantErr: assert.Error,
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				h := MockHasher[int]{}
+				h.On("makeHash", mock.AnythingOfType("int")).
+					Return(uint64(0), errors.New("test err"))
+				mt.hasher = &h
+				return mt
+			}(),
+		},
+		{
+			name:    "empty table",
+			args:    1,
+			want:    false,
+			wantErr: assert.NoError,
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				return mt
+			}(),
+			check: true,
+		},
+		{
+			name:    "doesn't contain",
+			args:    1,
+			want:    false,
+			wantErr: assert.NoError,
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 2, value: &people{name: "test", age: 2}}
+				return mt
+			}(),
+			check: true,
+		},
+		{
+			name:    "contains",
+			args:    0,
+			want:    true,
+			wantErr: assert.NoError,
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{
+					key:   2,
+					value: &people{name: "test", age: 2},
+					next:  &node[int, *people]{key: 0, value: &people{age: 0, name: "test"}},
+				}
+				return mt
+			}(),
+			check: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.ht.Contains(tt.args)
+			if !tt.wantErr(t, err, fmt.Sprintf("Contains(%v)", tt.args)) {
+				return
+			}
+			if tt.check {
+				assert.Equalf(t, tt.want, got, "Contains(%v)", tt.args)
+			}
+		})
+	}
+}
+
+func TestHashTable_Remove(t *testing.T) {
+	type testCase[K comparable, T any] struct {
+		name    string
+		ht      *HashTable[K, T]
+		args    K
+		wantErr assert.ErrorAssertionFunc
+		check   bool
+	}
+	tests := []testCase[int, *people]{
+		{
+			name: "got error by hasher",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				h := MockHasher[int]{}
+				h.On("makeHash", mock.AnythingOfType("int")).
+					Return(uint64(0), errors.New("test err"))
+				mt.hasher = &h
+				return mt
+			}(),
+			wantErr: assert.Error,
+		},
+		{
+			name: "got error when empty value",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				return mt
+			}(),
+			wantErr: assert.Error,
+		},
+		{
+			name: "got error when not find",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 0, value: &people{name: "test", age: 0}}
+				return mt
+			}(),
+			args:    2,
+			wantErr: assert.Error,
+		},
+		{
+			name: "remove without collision",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				return mt
+			}(),
+			args:    44,
+			wantErr: assert.NoError,
+			check:   true,
+		},
+		{
+			name: "remove with collision in tail",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				mt.resolvePutCollision(8, &people{name: "test", age: 8}, 132)
+				mt.resolvePutCollision(2, &people{name: "test", age: 2}, 132)
+				mt.resolvePutCollision(0, &people{name: "test", age: 0}, 132)
+				return mt
+			}(),
+			args:    44,
+			wantErr: assert.NoError,
+			check:   true,
+		},
+		{
+			name: "remove with collision in head",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				mt.resolvePutCollision(8, &people{name: "test", age: 8}, 132)
+				mt.resolvePutCollision(2, &people{name: "test", age: 2}, 132)
+				mt.resolvePutCollision(0, &people{name: "test", age: 0}, 132)
+				return mt
+			}(),
+			args:    0,
+			wantErr: assert.NoError,
+			check:   true,
+		},
+		{
+			name: "remove with collision in middle",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				mt.resolvePutCollision(8, &people{name: "test", age: 8}, 132)
+				mt.resolvePutCollision(2, &people{name: "test", age: 2}, 132)
+				mt.resolvePutCollision(0, &people{name: "test", age: 0}, 132)
+				return mt
+			}(),
+			args:    2,
+			wantErr: assert.NoError,
+			check:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.wantErr(t, tt.ht.Remove(tt.args), fmt.Sprintf("Remove(%v)", tt.args))
+			if tt.check {
+				i, _ := tt.ht.hasher.makeHash(tt.args)
+				assert.Equal(t, new(people), iterateThrowCollision(tt.args, tt.ht.table[i]))
+			}
+		})
+	}
+}
+
+func TestHashTable_Clear(t *testing.T) {
+	type testCase[K comparable, T any] struct {
+		name string
+		ht   *HashTable[K, T]
+	}
+	tests := []testCase[int, *people]{
+		{
+			name: "empty",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				return mt
+			}(),
+		},
+		{
+			name: "not empty",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{
+					key:   8,
+					value: &people{name: "test", age: 8},
+					next:  &node[int, *people]{key: 44, value: &people{name: "test", age: 44}},
+				}
+				mt.table[0] = &node[int, *people]{
+					key:   99,
+					value: &people{name: "test", age: 99},
+				}
+				mt.size = 3
+				return mt
+			}(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.ht.Clear()
+			assert.Zero(t, tt.ht.size)
+			assert.Condition(t, func() (success bool) {
+				for _, n := range tt.ht.table {
+					if n != nil {
+						return false
+					}
+				}
+				return true
+			}, "after Clear() ht contains not empty values")
+		})
+	}
+}
+
+func TestHashTable_Keys(t *testing.T) {
+	type testCase[K comparable, T any] struct {
+		name string
+		ht   *HashTable[K, T]
+		want []K
+	}
+	tests := []testCase[int, *people]{
+		{
+			name: "when empty",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				return mt
+			}(),
+			want: ([]int)(nil),
+		},
+		{
+			name: "got keys",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				mt.resolvePutCollision(8, &people{name: "test", age: 8}, 132)
+				mt.resolvePutCollision(2, &people{name: "test", age: 2}, 132)
+				mt.resolvePutCollision(0, &people{name: "test", age: 0}, 132)
+				mt.size = 4
+				return mt
+			}(),
+			want: []int{8, 44, 0, 2},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.ElementsMatchf(t, tt.want, tt.ht.Keys(), "Keys()")
+		})
+	}
+}
+
+func TestHashTable_Values(t *testing.T) {
+	type testCase[K comparable, T any] struct {
+		name string
+		ht   *HashTable[K, T]
+		want []T
+	}
+	tests := []testCase[int, *people]{
+		{
+			name: "when empty",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				return mt
+			}(),
+			want: ([]*people)(nil),
+		},
+		{
+			name: "got keys",
+			ht: func() *HashTable[int, *people] {
+				mt, _ := NewHashTableWithCapacity[int, *people](uint64(150))
+				mt.table[132] = &node[int, *people]{key: 44, value: &people{name: "test", age: 44}}
+				mt.resolvePutCollision(8, &people{name: "test", age: 8}, 132)
+				mt.resolvePutCollision(2, &people{name: "test", age: 2}, 132)
+				mt.resolvePutCollision(0, &people{name: "test", age: 0}, 132)
+				mt.size = 4
+				return mt
+			}(),
+			want: []*people{
+				{name: "test", age: 44},
+				{name: "test", age: 8},
+				{name: "test", age: 2},
+				{name: "test", age: 0},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.ElementsMatchf(t, tt.want, tt.ht.Values(), "Values()")
+		})
+	}
+}

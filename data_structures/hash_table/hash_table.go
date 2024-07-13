@@ -127,9 +127,9 @@ func (t *HashTable[K, T]) Foreach(tFunc HashTableFunc[T]) {
 
 func (t *HashTable[K, T]) Clear() {
 	t.size = 0
-	for _, el := range t.table {
+	for i, el := range t.table {
 		if el != nil {
-			el = nil
+			t.table[i] = nil
 		}
 	}
 	fmt.Println("clear")
