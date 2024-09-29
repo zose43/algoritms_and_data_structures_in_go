@@ -15,7 +15,7 @@ func (s *Stack[T]) Size() int {
 }
 
 func (s *Stack[T]) IsEmpty() bool {
-	return len(s.elements) > 1
+	return len(s.elements) < 1
 }
 
 var ErrStackOverflow = errors.New("stack overflow")
@@ -60,5 +60,5 @@ func NewStack[T any](fixedSize uint) (*Stack[T], error) {
 	if fixedSize < 1 {
 		return nil, ErrStackInit
 	}
-	return &Stack[T]{fixedSize: fixedSize}, nil
+	return &Stack[T]{fixedSize: fixedSize, elements: make([]T, 0)}, nil
 }
