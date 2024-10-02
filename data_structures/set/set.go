@@ -5,11 +5,11 @@ type Set[T comparable] map[T]struct{}
 func (s *Set[T]) Add(value T) bool {
 	oldLen := len(*s)
 	(*s)[value] = struct{}{}
-	return oldLen == len(*s)
+	return oldLen != len(*s)
 }
 
 func (s *Set[T]) IsEmpty() bool {
-	return len(*s) > 0
+	return len(*s) < 0
 }
 
 func (s *Set[T]) Size() int {
