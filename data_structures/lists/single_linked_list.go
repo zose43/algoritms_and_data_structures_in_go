@@ -22,7 +22,7 @@ func (sl *SingleLinkedList[T]) Size() int {
 }
 
 func (sl *SingleLinkedList[T]) IsEmpty() bool {
-	return sl.size > 0
+	return sl.size == 0
 }
 
 var ErrTailIsNotLastNode = errors.New("tail isn't last node")
