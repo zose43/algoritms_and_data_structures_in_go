@@ -139,3 +139,200 @@ func TestSet_Contains(t *testing.T) {
 		})
 	}
 }
+
+func TestSet_Difference(t *testing.T) {
+	type testCase[T comparable] struct {
+		name string
+		s    *Set[T]
+		args *Set[T]
+		want *Set[T]
+	}
+	tests := []testCase[int]{
+		{
+			name: "difference when empty source",
+			s:    &Set[int]{},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{},
+		},
+		{
+			name: "difference when empty diff",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "success difference",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{1: struct{}{}},
+		},
+		{
+			name: "all elements are different",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tt.s.Difference(tt.args), "Difference(%v)", tt.args)
+		})
+	}
+}
+
+func TestSet_SymmetricDifference(t *testing.T) {
+	type testCase[T comparable] struct {
+		name string
+		s    *Set[T]
+		args *Set[T]
+		want *Set[T]
+	}
+	tests := []testCase[int]{
+		{
+			name: "difference when empty source",
+			s:    &Set[int]{},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "difference when empty diff",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "success difference",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 4: struct{}{}},
+		},
+		{
+			name: "all elements are different",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}, 4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tt.s.SymmetricDifference(tt.args), "SymmetricDifference(%v)", tt.args)
+		})
+	}
+}
+
+func TestSet_Intersect(t *testing.T) {
+	type testCase[T comparable] struct {
+		name string
+		s    *Set[T]
+		args *Set[T]
+		want *Set[T]
+	}
+	tests := []testCase[int]{
+		{
+			name: "difference when empty source",
+			s:    &Set[int]{},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{},
+		},
+		{
+			name: "difference when empty diff",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{},
+			want: &Set[int]{},
+		},
+		{
+			name: "success intersect",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "all elements are different",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+			want: &Set[int]{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tt.s.Intersect(tt.args), "Intersect(%v)", tt.args)
+		})
+	}
+}
+
+func TestSet_Union(t *testing.T) {
+	type testCase[T comparable] struct {
+		name string
+		s    *Set[T]
+		args *Set[T]
+		want *Set[T]
+	}
+	tests := []testCase[int]{
+		{
+			name: "union when empty source",
+			s:    &Set[int]{},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "union when empty diff",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "union with doubles",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}, 4: struct{}{}},
+		},
+		{
+			name: "union when all elements are different",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+			want: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}, 4: struct{}{}, 5: struct{}{}, 6: struct{}{}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tt.s.Union(tt.args), "Union(%v)", tt.args)
+		})
+	}
+}
+
+func TestSet_IsSubset(t *testing.T) {
+	type testCase[T comparable] struct {
+		name string
+		s    *Set[T]
+		args *Set[T]
+		want bool
+	}
+	tests := []testCase[int]{
+		{
+			name: "subset when empty source",
+			s:    &Set[int]{},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "subset when empty diff",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{},
+		},
+		{
+			name: "no subset",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{4: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+		},
+		{
+			name: "union when all elements are different",
+			s:    &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			args: &Set[int]{1: struct{}{}, 2: struct{}{}, 3: struct{}{}},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, tt.s.IsSubset(tt.args), "IsSubset(%v)", tt.args)
+		})
+	}
+}
