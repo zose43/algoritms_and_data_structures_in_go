@@ -24,7 +24,7 @@ func (s *Stack[T]) Push(value T) error {
 	if uint(s.Size()) >= s.fixedSize {
 		return ErrStackOverflow
 	}
-	s.elements = append(s.elements, value)
+	s.elements = append([]T{value}, s.elements...)
 	return nil
 }
 
