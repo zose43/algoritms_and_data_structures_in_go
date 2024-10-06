@@ -158,7 +158,7 @@ func TestStack_Push(t *testing.T) {
 		{
 			name:    "full stack",
 			s:       &Stack[int]{fixedSize: 3, elements: []int{1, 2}},
-			src:     &Stack[int]{fixedSize: 3, elements: []int{1, 2, 3}},
+			src:     &Stack[int]{fixedSize: 3, elements: []int{3, 1, 2}},
 			wantErr: assert.NoError,
 			args:    args{value: 3},
 		},
