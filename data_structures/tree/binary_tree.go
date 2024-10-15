@@ -182,10 +182,40 @@ func (t *BinaryTree[T]) SymmetricTraversal(f func(T)) {
 	fmt.Println()
 }
 
-func (t *BinaryTree[T]) symmetricTraversal(localRoot *Node[T], f func(T)) {
-	if localRoot == nil {
+func (t *BinaryTree[T]) DisorderedTraversal(f func(T)) {
+	fmt.Println("disordered traversal")
+	t.disorderedTraversal(t.root, f)
+	fmt.Println()
+}
 
+func (t *BinaryTree[T]) disorderedTraversal(localRoot *Node[T], f func(T)) {
+	if localRoot != nil {
+		t.disorderedTraversal(localRoot.left, f)
+		t.disorderedTraversal(localRoot.right, f)
+		f(localRoot.data)
 	}
+}
+
+func (t *BinaryTree[T]) symmetricTraversal(localRoot *Node[T], f func(T)) {
+	if localRoot != nil {
+		t.symmetricTraversal(localRoot.left, f)
+		f(localRoot.data)
+		t.symmetricTraversal(localRoot.right, f)
+	}
+}
+
+func (t *BinaryTree[T]) FetchTreeAsString() string {
+	if t.IsEmpty() {
+		return ""
+	}
+	var builder string
+	var nestingCount int
+	t.createTreeAsString(t.root, &builder, &nestingCount)
+	return builder
+}
+
+func (t *BinaryTree[T]) createTreeAsString(root *Node[T], builder *string, nestingCount *int) {
+
 }
 
 func fetchSuccessor[T Rib](node *Node[T]) *Node[T] {
