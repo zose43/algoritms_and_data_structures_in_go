@@ -3,6 +3,7 @@ package tree
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type Rib interface {
@@ -208,14 +209,30 @@ func (t *BinaryTree[T]) FetchTreeAsString() string {
 	if t.IsEmpty() {
 		return ""
 	}
-	var builder string
-	var nestingCount int
-	t.createTreeAsString(t.root, &builder, &nestingCount)
-	return builder
+	var builder strings.Builder
+	t.createTreeAsString(t.root, 0, &builder)
+	return builder.String()
 }
 
-func (t *BinaryTree[T]) createTreeAsString(root *Node[T], builder *string, nestingCount *int) {
+const spaceCount = 5
 
+func (t *BinaryTree[T]) createTreeAsString(
+	root *Node[T],
+	count int,
+	builder *strings.Builder,
+) {
+	if root == nil {
+		return
+	}
+	count += spaceCount
+
+	t.createTreeAsString(root.right, count, builder)
+
+	_, _ = builder.WriteString("\n")
+	_, _ = builder.WriteString(strings.Repeat(" ", count))
+	_, _ = builder.WriteString(fmt.Sprintf("%v\n", root.key()))
+
+	t.createTreeAsString(root.left, count, builder)
 }
 
 func fetchSuccessor[T Rib](node *Node[T]) *Node[T] {
