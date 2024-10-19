@@ -130,6 +130,7 @@ func (t *BinaryTree[T]) Remove(key int) error {
 			isLeftNode = true
 		} else {
 			current = current.right
+			isLeftNode = false
 		}
 	}
 	if current == nil {
@@ -139,8 +140,7 @@ func (t *BinaryTree[T]) Remove(key int) error {
 	if current.isLeaf() {
 		if current == t.root {
 			t.root = nil
-		}
-		if isLeftNode {
+		} else if isLeftNode {
 			parent.left = nil
 		} else {
 			parent.right = nil
@@ -249,8 +249,19 @@ func fetchSuccessor[T Rib](node *Node[T]) *Node[T] {
 		successor.right = node.right
 		successor.left = node.left
 	} else {
-		successor = successorParent.left
-		successor.right = successorParent.right
+		current = node.left
+		successorParent = node
+		successor = node
+		for current != nil {
+			successorParent = successor
+			successor = current
+			current = current.right
+		}
+		successor.right = node.right
+		if successor != node.left {
+			successorParent.right = successor.left
+			successor.left = node.left
+		}
 	}
 	return successor
 }
